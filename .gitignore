@@ -2,6 +2,7 @@ figures/
 .direnv/
 .envrc
 debugging_figures/
+function_graveyard.py
 __pycache__/
 plotting_matrices/
 training_data/
