@@ -1,0 +1,11 @@
+figures/
+.direnv/
+.envrc
+debugging_figures/
+__pycache__/
+plotting_matrices/
+training_data/
+test_data/
+50-epoch-model.pth
+model.pth
+video.mp4
