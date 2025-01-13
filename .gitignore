@@ -10,3 +10,4 @@ test_data/
 50-epoch-model.pth
 model.pth
 video.mp4
+images/
