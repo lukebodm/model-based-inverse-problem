@@ -19,5 +19,5 @@ A nix development environment for running the code in this repository.
 ** ~flake.lock~
 Pinned dependencies for the ~flake.nix~ development environment.
 
-** ~plotting_scripts~
+** ~plotting_scripts/~
 Various plotting functions for visualizing the data, FDTD simulation, and optimization.
