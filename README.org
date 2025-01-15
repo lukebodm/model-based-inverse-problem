@@ -1,2 +1,23 @@
 * Model Based Inverse Problem Solving
-The code used to create the images and figures from my oral examination presentation. This includes the code for simulation, surrogate model, and optimization method.
+The code for the toy full waveform inversion problem discussed in my [[https://lukebodm.github.io/oral_qualifying_exam/][PhD oral examination presentation]].
+
+** ~forward_problem.py~
+A 2D finite difference time domain (FDTD) algorithm for the propagation of electromagnetic waves in a square domain.
+
+** ~generate_data.py~
+Runs the forward problem simulation ~n~ times to create synthetic training and test data that can be used to train a surrogate model.
+
+** ~simulation_optimization.py~
+A gradient descent optimization that directly uses the mismatch between the FDTD simulation data and the test data to produce an image.
+
+** ~surrogate_optimization.py~
+A gradient descent optimization that uses the surrogate model that is trained on the FDTD simulation. The program minimizes the difference between the surrogate's simulated data and the test data.
+
+** ~flake.nix~
+A nix development environment for running the code in this repository.
+
+** ~flake.lock~
+Pinned dependencies for the ~flake.nix~ development environment.
+
+** ~plotting_scripts~
+Various plotting functions for visualizing the data, FDTD simulation, and optimization.
