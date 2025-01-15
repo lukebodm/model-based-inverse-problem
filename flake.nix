@@ -40,6 +40,7 @@
                 python-pkgs.pyvista
                 python-pkgs.scipy
                 python-pkgs.torch
+                python-pkgs.tqdm
               ]))
             ];
 

@@ -13,18 +13,22 @@ import pdb
 class PinnModel(nn.Module):
     def __init__(self):
         super(PinnModel, self).__init__()
-        # Define layers
-        self.fc1 = nn.Linear(4, 64)     # Input layer (4 parameters to 64 neurons)
-        self.fc2 = nn.Linear(64, 128)  # Hidden layer (64 to 128 neurons)
-        self.fc3 = nn.Linear(128, 7020)  # Hidden layer (128 to 7020 neurons = 20 * 351)
-        self.fc4 = nn.Linear(7020, 7020)  # Hidden layer (128 to 7020 neurons = 20 * 351)
+        self.fc1 = nn.Linear(4, 64)        # Input layer
+        self.fc2 = nn.Linear(64, 128)     # Hidden layer
+        self.fc3 = nn.Linear(128, 512)    # Hidden layer
+        self.fc4 = nn.Linear(512, 2000)   # Transition layer
+        self.fc5 = nn.Linear(2000, 5000)  # Transition layer
+        self.fc6 = nn.Linear(5000, 10000) # Transition layer
+        self.fc7 = nn.Linear(10000, 231351) # Final layer
 
     def forward(self, x):
-        # Pass through layers
-        x = F.relu(self.fc1(x))  # Shape: [1, 64]
-        x = F.relu(self.fc2(x))  # Shape: [1, 128]
-        x = F.relu(self.fc3(x))  # Shape: [1, 128]
-        x = self.fc4(x)          # Shape: [1, 7000]
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        x = F.relu(self.fc6(x))
+        x = self.fc7(x)  # Final output
         return x
 
 
@@ -75,7 +79,7 @@ class SyntheticDataset(Dataset):
         input_tensor = torch.tensor(input_data, dtype=torch.float32)
         output_tensor = torch.tensor(output_data, dtype=torch.float32)
         # flatten output
-        output_tensor = torch.flatten(output_tensor)
+        #output_tensor = torch.flatten(output_tensor)
         return input_tensor, output_tensor
 
 
@@ -130,7 +134,6 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, epoch_ind):
 
 if __name__ == "__main__":
     # select computing device
-    # use GPU if available
     device = (
         "cuda"
         if torch.cuda.is_available()
@@ -144,7 +147,7 @@ if __name__ == "__main__":
     training_data = SyntheticDataset(data_dir="./training_data")
     test_data = SyntheticDataset(data_dir="./test_data")
 
-    # Create data loaders.
+    # Create data loaders
     batch_size = 32  # Adjust the batch size as needed
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
@@ -152,23 +155,29 @@ if __name__ == "__main__":
     # Create Model and move it to device
     model = PinnModel().to(device)
 
+    # Check if a saved model exists and load it
+    model_path = "model.pth"
+    if os.path.exists(model_path):
+        print("Loading saved model...")
+        model.load_state_dict(torch.load(model_path, map_location=device))
+
     # Create Loss function
     loss_fn = nn.MSELoss()
 
     # Create optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-    # train and test model
-    epoch_number = 0
+    # Train and test model
     epochs = 20
     for i in range(epochs):
-        print(f"Epoch {i+1}\n-------------------------------")
-        # train
+        print(f"Epoch {i + 1}\n-------------------------------")
+        # Train
         avg_loss = train_one_epoch(train_dataloader, model, loss_fn, optimizer, i)
-        # test
+        # Test
         test(test_dataloader, model, loss_fn)
-        print("Done!")
+        
+        # Save the model at the end of the epoch
+        torch.save(model.state_dict(), model_path)
+        print(f"Model saved after epoch {i + 1}")
 
-    # save model
-    torch.save(model.state_dict(), "model.pth")
-    print("Saved PyTorch Model State to model.pth")
+    print("Training complete!")

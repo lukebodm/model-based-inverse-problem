@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 import argparse
 import os
@@ -8,20 +9,23 @@ def create_training_data_structures(eps, mu, width, length, n_timesteps, n_senso
     # pytorch tensor of input values
     input_data = np.array([eps, mu, width, length])
     # pytorch tensor of output values
-    output_data = np.zeros((n_sensors, n_timesteps+1))
+    output_data = np.zeros((n_sensors*3, n_timesteps+1))
     return input_data, output_data
 
 
-def update_sensor_data(sensors, output_data, Ez, timestep):
-    # Create a list of sensor values by extracting the values from Ez
-    sensor_values = [Ez[x, y] for x, y in sensors]
+def update_sensor_data(sensors, output_data, Ez, Hx, Hy, timestep):
+    # Extract sensor values for Ez, Hx, and Hy and stack them into a single array
+    sensor_values = np.array([[Ez[x, y], Hx[x, y], Hy[x, y]] for x, y in sensors])
+
+    # Flatten the array to match the dimensions of output_data
+    flattened_sensor_values = sensor_values.flatten()
 
     # Update output_data at the specified timestep for each sensor
-    output_data[:, timestep] = sensor_values
-    return
+    output_data[:, timestep] = flattened_sensor_values
+    return output_data
 
 
-def save_training_data(input_data, output_data):
+def save_training_data(input_data, output_data, t0_datacut):
     """
     Saves Ez values at specific sensor locations to a numpy file for
     all timesteps
@@ -43,12 +47,18 @@ def save_training_data(input_data, output_data):
     os.makedirs(directory, exist_ok=True)
     filename = f"{directory}eps{eps_str}_mu{mu_str}_w{width_str}_l{length_str}.npz"
 
+    # Remove the first t0_datacut points in the time series from output_data
+    trimmed_output_data = output_data[:, t0_datacut:]
+
+    # Flatten the trimmed output_data before saving
+    flattened_output_data = trimmed_output_data.flatten()
+
     # Save input and output arrays to the file
-    np.savez(filename, input_data=input_data, output_data=output_data)
+    np.savez(filename, input_data=input_data, output_data=flattened_output_data)
     return
 
 
-def forward_problem(eps_r, mu_r, length, width, plot=False):
+def forward_problem(eps_r, mu_r, length, width, plot=False, save=True):
     """
     2D FDTD electromagnetic wave simulation
     Simulates Transverse Magnetic (TM) mode field components with
@@ -67,16 +77,52 @@ def forward_problem(eps_r, mu_r, length, width, plot=False):
         (31, 190),   # 1st source
         (200, 31),   # 2nd source
         (163, 329),  # 3rd source
-        (329, 140)   # 4th source
+        (329, 120)   # 4th source
     ]
 
-       # sensor positions
-    sensors = [
-        (31, 31), (31, 81), (31, 141), (31, 211), (31, 251), (31, 319),
-        (71, 329),  (151, 329), (241, 329), (281, 329), (322, 329),
-        (329, 291), (329, 231), (329, 121), (329, 95),  (329, 41),
-        (265, 31),  (221, 31),  (101, 31),  (64, 31)
-    ]
+    # simulation parameters
+    t0_datacut = 150
+
+    # Define the perimeter of the square (using x = 31, 329 and y = 31, 329)
+    x_min, x_max = 31, 329
+    y_min, y_max = 31, 329
+
+    # Function to compute Euclidean distance between two points
+    def distance(p1, p2):
+        return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+    # Function to generate the sensors along the perimeter and filter them
+    def generate_sensors(x_min, x_max, y_min, y_max, num_sensors, sources, min_distance=20):
+        sensors = set()  # Using a set to avoid duplicate sensors
+
+        # Divide the perimeter into segments
+        # Horizontal lines: y = y_min and y = y_max
+        for y in [y_min, y_max]:
+            step = (x_max - x_min) / (num_sensors // 2)  # Half the sensors on each horizontal side
+            for i in range(num_sensors // 2):
+                x = x_min + i * step
+                x_int = round(x)  # Round to nearest integer
+                sensor = (x_int, y)
+                # Filter sensor if within min_distance of any source
+                if not any(distance(sensor, source) <= min_distance for source in sources):
+                    sensors.add(sensor)
+
+        # Vertical lines: x = x_min and x = x_max
+        for x in [x_min, x_max]:
+            step = (y_max - y_min) / (num_sensors // 2)  # Half the sensors on each vertical side
+            for i in range(num_sensors // 2):
+                y = y_min + i * step
+                y_int = round(y)  # Round to nearest integer
+                sensor = (x, y_int)
+                # Filter sensor if within min_distance of any source
+                if not any(distance(sensor, source) <= min_distance for source in sources):
+                    sensors.add(sensor)
+
+        return list(sensors)  # Convert set back to list for final output
+
+    # Generate the sensors (you can adjust num_sensors to increase or decrease the number of sensors)
+    num_sensors = 40
+    sensors = generate_sensors(x_min, x_max, y_min, y_max, num_sensors, sources)
     n_sensors = len(sensors)
 
     # interior grid parameters (not PML)
@@ -109,21 +155,21 @@ def forward_problem(eps_r, mu_r, length, width, plot=False):
     # time stepping parameters
     courant_factor = 0.9
     dt = courant_factor * 1/(c*np.sqrt(1/(dx**2) + 1/(dy**2)))   # based on CFL
-    n_timesteps = 350
+    n_timesteps = 1300
     t_final = dt*n_timesteps     # final time
     t = 0                        # starting time
 
     # log information to the consol
-    print("\n PROBLEM INFORMATION ")
-    print(" -------------------")
-    print(f"number of grid points in x direction = {nx}")
-    print(f"number of grid points in y direction = {ny}")
-    print(f"domain width  = {size_x}[m]")
-    print(f"domain height = {size_y}[m]")
-    print(f"dx = {dx}[m] \ndy = {dy}[m] \ndt = {dt}[s]")
-    print(f"wavelength = {wavelength}[m] \nfrequency = {frequency}[Hz]")
-    print(f"epsilon = {epsilon}[?] \nmu = {mu}[?]")
-    print(f"c = {c}[m/s]\n")
+    # print("\n PROBLEM INFORMATION ")
+    # print(" -------------------")
+    # print(f"number of grid points in x direction = {nx}")
+    # print(f"number of grid points in y direction = {ny}")
+    # print(f"domain width  = {size_x}[m]")
+    # print(f"domain height = {size_y}[m]")
+    # print(f"dx = {dx}[m] \ndy = {dy}[m] \ndt = {dt}[s]")
+    # print(f"wavelength = {wavelength}[m] \nfrequency = {frequency}[Hz]")
+    # print(f"epsilon = {epsilon}[?] \nmu = {mu}[?]")
+    # print(f"c = {c}[m/s]\n")
 
     # Initialize Fields for entire domain (even PML)
     Ez = np.zeros((nxp1, nyp1))
@@ -322,14 +368,24 @@ def forward_problem(eps_r, mu_r, length, width, plot=False):
             np.save(os.path.join(output_dir, f"Hx_timestep_{timestep_str}.npy"), Hx)
             np.save(os.path.join(output_dir, f"Hy_timestep_{timestep_str}.npy"), Hy)
 
-        # ADD CODE HERE
-        update_sensor_data(sensors, output_data, Ez, timestep)
+        # update sensors
+        output_data = update_sensor_data(sensors, output_data, Ez, Hx, Hy, timestep)
 
         # increment timestep
         timestep += 1
 
-    # Save data for training gaussian process
-    save_training_data(input_data, output_data)
+    if save:
+        # Save data for training gaussian process
+        save_training_data(input_data, output_data, t0_datacut)
+    else:
+        # Remove the first t0_datacut points in the time series from output_data
+        trimmed_output_data = output_data[:, t0_datacut:]
+
+        # Flatten the trimmed output_data before saving
+        flattened_output_data = trimmed_output_data.flatten()
+
+        return flattened_output_data
+
     return
 
 

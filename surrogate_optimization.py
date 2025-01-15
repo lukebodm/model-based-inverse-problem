@@ -16,10 +16,10 @@ input_vector = torch.tensor([1.0, 1.0, 100.0, 100.0], requires_grad=True)
 # Load one target file
 file_name = "test_data/eps3740_mu1597_w214_l136.npz"  # Example file
 data = np.load(file_name)
-target_matrix = torch.tensor(data['output_data'], dtype=torch.float32)  
+target_vector = torch.tensor(data['output_data'], dtype=torch.float32)  
 
 # Flatten the target matrix
-target_vector = target_matrix.flatten()
+# target_vector = target_matrix.flatten()
 
 # Define the optimizer
 optimizer = optim.SGD([input_vector], lr=0.01)
@@ -34,23 +34,24 @@ best_input_vector = input_vector.clone().detach()  # Track the best input vector
 
 for iteration in range(num_iterations):
     optimizer.zero_grad()  # Clear previous gradients
-    
+
     # Forward pass
     model_output = model(input_vector)  # Compute model output
     model_vector = model_output.flatten()  # Flatten the output matrix
-    
+
     # Compute loss
     loss = loss_fn(model_vector, target_vector)
-    
+
     # Backward pass
     loss.backward()
-    
+
     # Update parameters
     optimizer.step()
-    
+
     # Clamp inputs to their valid ranges
     with torch.no_grad():
-        input_vector[:2].clamp_(1.0, 10.0)   # First two inputs: [1, 10]
+        input_vector[0].clamp_(1.0, 10.0)  # First input: [1, 100]
+        input_vector[1].clamp_(1.0, 10.0)   # Second input: [1, 10]
         input_vector[2:].clamp_(0.0, 300.0) # Last two inputs: [0, 300]
 
     # Update the best input vector if the current loss is better
