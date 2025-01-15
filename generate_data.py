@@ -12,6 +12,7 @@ for i in tqdm(range(n_datasets), desc="Generating datasets"):
     width = random.randint(3, 130) * 2   # Generate even numbers between 8 and 260
     forward_problem(eps, mu, length, width, False)
 
+# Below is a parallel version that can be used
 ## Function to wrap the forward_problem execution
 #def run_forward_problem(_):
 #    eps = round(random.uniform(1, 2), 3)

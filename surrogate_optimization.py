@@ -28,7 +28,7 @@ optimizer = optim.SGD([input_vector], lr=0.01)
 loss_fn = nn.MSELoss()
 
 # Optimization loop
-num_iterations = 10000  # Set the number of gradient descent iterations
+num_iterations = 10000  # number of gradient descent iterations
 best_loss = float('inf')  # Track the best loss
 best_input_vector = input_vector.clone().detach()  # Track the best input vector
 

@@ -47,7 +47,7 @@
             # PETSC_DIR = "${pkgs.petsc}";
 
             shellHook = ''
-              export VIRTUAL_ENV="Custom Environment"
+              export VIRTUAL_ENV="Full Waveform Inversion"
             '';
           };
         };

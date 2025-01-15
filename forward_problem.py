@@ -1,6 +1,4 @@
 import numpy as np
-import random
-
 import argparse
 import os
 
@@ -27,8 +25,8 @@ def update_sensor_data(sensors, output_data, Ez, Hx, Hy, timestep):
 
 def save_training_data(input_data, output_data, t0_datacut):
     """
-    Saves Ez values at specific sensor locations to a numpy file for
-    all timesteps
+    Saves Ez, Hx, and Hy values at specific sensor locations
+    to a numpy file for all timesteps
     """
     # Extract values from the input tensor
     eps, mu, width, length = input_data.tolist()

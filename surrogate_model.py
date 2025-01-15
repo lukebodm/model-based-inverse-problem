@@ -13,13 +13,13 @@ import pdb
 class PinnModel(nn.Module):
     def __init__(self):
         super(PinnModel, self).__init__()
-        self.fc1 = nn.Linear(4, 64)        # Input layer
-        self.fc2 = nn.Linear(64, 128)     # Hidden layer
-        self.fc3 = nn.Linear(128, 512)    # Hidden layer
-        self.fc4 = nn.Linear(512, 2000)   # Transition layer
-        self.fc5 = nn.Linear(2000, 5000)  # Transition layer
-        self.fc6 = nn.Linear(5000, 10000) # Transition layer
-        self.fc7 = nn.Linear(10000, 231351) # Final layer
+        self.fc1 = nn.Linear(4, 64)          # Input layer
+        self.fc2 = nn.Linear(64, 128)        # Hidden layer
+        self.fc3 = nn.Linear(128, 512)       # Hidden layer
+        self.fc4 = nn.Linear(512, 2000)      # Hidden layer
+        self.fc5 = nn.Linear(2000, 5000)     # Hidden layer
+        self.fc6 = nn.Linear(5000, 10000)    # Hidden layer
+        self.fc7 = nn.Linear(10000, 231351)  # Final layer
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         avg_loss = train_one_epoch(train_dataloader, model, loss_fn, optimizer, i)
         # Test
         test(test_dataloader, model, loss_fn)
-        
+
         # Save the model at the end of the epoch
         torch.save(model.state_dict(), model_path)
         print(f"Model saved after epoch {i + 1}")
